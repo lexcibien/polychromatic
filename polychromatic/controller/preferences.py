@@ -12,6 +12,8 @@ from PyQt6.QtWidgets import (QCheckBox, QComboBox, QDialog, QDialogButtonBox,
                              QDoubleSpinBox, QLabel, QMessageBox, QPushButton,
                              QSpinBox, QTabWidget, QWidget)
 
+from polychromatic import common
+
 from .. import preferences as pref
 from .. import procpid
 from ..base import PolychromaticBase
@@ -94,7 +96,7 @@ class PreferencesWindow(shared.TabData):
             self.pref_data["tray"]["icon"] = new_icon
             self.restart_applet = True
 
-        tray_icon_picker = self.widgets.create_icon_picker_control(_set_new_tray_icon, self.pref_data["tray"]["icon"], self._("Choose Tray Applet Icon"), shared.IconPicker.PURPOSE_TRAY_ONLY)
+        tray_icon_picker = self.widgets.create_icon_picker_control(_set_new_tray_icon, common.get_tray_icon(self.dbg, self.pref_data["tray"]["icon"]), self._("Choose Tray Applet Icon"), shared.IconPicker.PURPOSE_TRAY_ONLY)
         tray_icon_widget = self.dialog.findChild(QLabel, "TrayIconPickerPlaceholder")
         tray_icon_widget.parentWidget().layout().replaceWidget(tray_icon_widget, tray_icon_picker)
 
@@ -381,6 +383,7 @@ class OpenRazerPreferences(shared.TabData):
 
         self.dialog.findChild(QCheckBox, "battery_notifier").clicked.connect(self._update_ui_state)
         self.dialog.findChild(QCheckBox, "restore_persistence").clicked.connect(self._update_ui_state)
+        self.dialog.findChild(QCheckBox, "persistence_dual_boot_quirk").clicked.connect(self._update_ui_state)
         self._update_ui_state()
 
         # "persistence_dual_boot_quirk" was added in OpenRazer 3.9.0
@@ -399,7 +402,11 @@ class OpenRazerPreferences(shared.TabData):
             self.dialog.findChild(QLabel, f"{object_name}_label").setEnabled(battery_notifications_enabled)
 
         restore_persistence_enabled = self.dialog.findChild(QCheckBox, "restore_persistence").isChecked()
+        self.dialog.findChild(QLabel, "restore_persistence_note").setEnabled(restore_persistence_enabled)
         self.dialog.findChild(QCheckBox, "persistence_dual_boot_quirk").setEnabled(restore_persistence_enabled)
+
+        restore_persistence_quirk_enabled = self.dialog.findChild(QCheckBox, "persistence_dual_boot_quirk").isChecked()
+        self.dialog.findChild(QLabel, "persistence_dual_boot_quirk_note").setEnabled(restore_persistence_enabled and restore_persistence_quirk_enabled)
 
     def _save_and_restart(self):
         """

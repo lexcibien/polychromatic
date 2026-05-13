@@ -99,7 +99,11 @@ class DevicesTab(shared.TabData):
         # For unknown devices, check support status using local index
         device_index = json.loads(open(f"{self.paths.data_dir}/devices/openrazer.json", "r").read())
         supported_pids = device_index.keys()
-        openrazer_version = self.middleman.get_backend("openrazer").version
+        openrazer = self.middleman.get_backend("openrazer")
+        if openrazer:
+            openrazer_version = self.middleman.get_backend("openrazer").version
+        else:
+            openrazer_version = "0.0.0"
 
         for device in unknown_device_list:
             assert isinstance(device, Backend.UnknownDeviceItem)
@@ -293,11 +297,27 @@ class DevicesTab(shared.TabData):
 
         try:
             device.refresh()
-        except Exception:
+        except Exception as e:
             # State may have changed, reload the device tab.
-            # TODO: Show "device changes detected" in status bar. Needs global function.
             self.middleman.invalidate_cache()
-            return self.set_tab()
+            self._catch_command_error(device, e)
+
+            shared.clear_layout(layout)
+            self.widgets.populate_empty_state(layout, common.get_icon("empty", "nobackend"), self._("Unable to open device"), self._("The last line of the exception was:") + "\n" + str(e), buttons=[
+                {
+                    "label": self._("Retry"),
+                    "icon_folder": "general",
+                    "icon_name": "refresh",
+                    "action": lambda: self.open_device(device)
+                },
+                {
+                    "label": self._("Troubleshoot"),
+                    "icon_folder": "general",
+                    "icon_name": "preferences",
+                    "action": self._start_troubleshooter
+                }
+            ])
+            return
 
         layout.addWidget(self._get_device_summary_widget(device))
 
